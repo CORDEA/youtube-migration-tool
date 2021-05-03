@@ -7,6 +7,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
+	"math/rand"
 	"net/http"
 )
 
@@ -35,8 +36,11 @@ func getClient(ctx context.Context, secret []byte, scope ...string) (*http.Clien
 }
 
 func requestToken(ctx context.Context, config *oauth2.Config) (*oauth2.Token, error) {
-	// TODO
-	url := config.AuthCodeURL("", oauth2.AccessTypeOffline)
+	state := ""
+	for i := 0; i < 3; i++ {
+		state += fmt.Sprintf("%c", rand.Intn(26) + 97)
+	}
+	url := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	fmt.Println(url)
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {
