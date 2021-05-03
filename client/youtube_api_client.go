@@ -28,6 +28,10 @@ func NewYouTubeApiClient(ctx context.Context, secret []byte) (*YouTubeApiClient,
 	return &YouTubeApiClient{service: service}, nil
 }
 
+func (c *YouTubeApiClient) GetSubscriptionsService() *youtube.SubscriptionsService {
+	return c.service.Subscriptions
+}
+
 func getClient(ctx context.Context, secret []byte, scope ...string) (*http.Client, error) {
 	config, err := google.ConfigFromJSON(secret, scope...)
 	if err != nil {
