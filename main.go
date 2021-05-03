@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/CORDEA/youtube-migration-tool/youtube"
-	youtube2 "google.golang.org/api/youtube/v3"
+	"github.com/CORDEA/youtube-migration-tool/client"
+	"google.golang.org/api/youtube/v3"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"time"
 )
 
-func fetchSubscriptions(service *youtube2.Service, pageToken string) (*youtube2.SubscriptionListResponse, error) {
+func fetchSubscriptions(service *youtube.Service, pageToken string) (*youtube.SubscriptionListResponse, error) {
 	call := service.Subscriptions.List([]string{"snippet"})
 	if pageToken != "" {
 		call.PageToken(pageToken)
@@ -29,30 +29,30 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	service, err := youtube.ProvideService(ctx, secret)
+	_, err = client.NewYouTubeApiClient(ctx, secret)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	var subs []*youtube2.Subscription
-	r, err := fetchSubscriptions(service, "")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	num := r.PageInfo.TotalResults
-	for ;; {
-		for _, s := range r.Items {
-			subs = append(subs, s)
-		}
-		num -= r.PageInfo.ResultsPerPage
-		if num <= 0 {
-			break
-		}
-		r, err = fetchSubscriptions(service, r.NextPageToken)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	}
+	var subs []*youtube.Subscription
+	//r, err := fetchSubscriptions(service, "")
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//num := r.PageInfo.TotalResults
+	//for ;; {
+	//	for _, s := range r.Items {
+	//		subs = append(subs, s)
+	//	}
+	//	num -= r.PageInfo.ResultsPerPage
+	//	if num <= 0 {
+	//		break
+	//	}
+	//	r, err = fetchSubscriptions(service, r.NextPageToken)
+	//	if err != nil {
+	//		log.Fatalln(err)
+	//	}
+	//}
 
 	for _, s := range subs {
 		fmt.Println(s.Snippet.Title)

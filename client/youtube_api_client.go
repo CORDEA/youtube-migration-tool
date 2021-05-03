@@ -1,4 +1,5 @@
-package youtube
+package client
+
 
 import (
 	"context"
@@ -11,7 +12,11 @@ import (
 	"net/http"
 )
 
-func ProvideService(ctx context.Context, secret []byte) (*youtube.Service, error) {
+type YouTubeApiClient struct {
+	service *youtube.Service
+}
+
+func NewYouTubeApiClient(ctx context.Context, secret []byte) (*YouTubeApiClient, error) {
 	client, err := getClient(ctx, secret, youtube.YoutubeReadonlyScope)
 	if err != nil {
 		return nil, err
@@ -20,7 +25,7 @@ func ProvideService(ctx context.Context, secret []byte) (*youtube.Service, error
 	if err != nil {
 		return nil, err
 	}
-	return service, nil
+	return &YouTubeApiClient{service: service}, nil
 }
 
 func getClient(ctx context.Context, secret []byte, scope ...string) (*http.Client, error) {
