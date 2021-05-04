@@ -27,7 +27,11 @@ const (
 )
 
 func NewYouTubeApiClient(ctx context.Context, secret []byte, cacheDir string) (*YouTubeApiClient, error) {
-	rClient, err := getClient(ctx, cacheDir, secret, youtube.YoutubeReadonlyScope)
+	if err := os.Mkdir(cacheDir, 0700); err != nil {
+		return nil, err
+	}
+
+	rClient, err := getClient(ctx, filepath.Join(cacheDir, "r.credentials.json"), secret, youtube.YoutubeReadonlyScope)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +39,7 @@ func NewYouTubeApiClient(ctx context.Context, secret []byte, cacheDir string) (*
 	if err != nil {
 		return nil, err
 	}
-	wClient, err := getClient(ctx, cacheDir, secret, youtube.YoutubeScope)
+	wClient, err := getClient(ctx, filepath.Join(cacheDir, "w.credentials.json"), secret, youtube.YoutubeScope)
 	if err != nil {
 		return nil, err
 	}
@@ -67,17 +71,13 @@ func (c *YouTubeApiClient) GetPlaylistItemsService(role Role) *youtube.PlaylistI
 	return c.readingService.PlaylistItems
 }
 
-func getClient(ctx context.Context, cacheDir string, secret []byte, scope ...string) (*http.Client, error) {
+func getClient(ctx context.Context, cachePath string, secret []byte, scope ...string) (*http.Client, error) {
 	config, err := google.ConfigFromJSON(secret, scope...)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := os.Mkdir(cacheDir, 0700); err != nil {
-		return nil, err
-	}
-	path := filepath.Join(cacheDir, "credentials.json")
-	token, err := restoreToken(path)
+	token, err := restoreToken(cachePath)
 	if err == nil {
 		return config.Client(ctx, token), nil
 	}
@@ -87,7 +87,7 @@ func getClient(ctx context.Context, cacheDir string, secret []byte, scope ...str
 		return nil, err
 	}
 	client := config.Client(ctx, token)
-	err = storeToken(path, token)
+	err = storeToken(cachePath, token)
 	return client, err
 }
 
