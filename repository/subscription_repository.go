@@ -13,8 +13,8 @@ func NewSubscriptionRepository(client *client.YouTubeApiClient) *SubscriptionRep
 	return &SubscriptionRepository{client: client}
 }
 
-func (r *SubscriptionRepository) fetchSubscriptions(pageToken string) (*youtube.SubscriptionListResponse, error) {
-	call := r.client.GetSubscriptionsService().List([]string{"snippet"})
+func (r *SubscriptionRepository) fetchSubscriptions(role client.Role, pageToken string) (*youtube.SubscriptionListResponse, error) {
+	call := r.client.GetSubscriptionsService(role).List([]string{"snippet"})
 	if pageToken != "" {
 		call.PageToken(pageToken)
 	}
@@ -23,14 +23,14 @@ func (r *SubscriptionRepository) fetchSubscriptions(pageToken string) (*youtube.
 	return call.Do()
 }
 
-func (r *SubscriptionRepository) FindAll() ([]*youtube.Subscription, error) {
+func (r *SubscriptionRepository) FindAll(role client.Role) ([]*youtube.Subscription, error) {
 	var subs []*youtube.Subscription
-	res, err := r.fetchSubscriptions("")
+	res, err := r.fetchSubscriptions(role, "")
 	if err != nil {
 		return subs, err
 	}
 	num := res.PageInfo.TotalResults
-	for ;; {
+	for ; ; {
 		for _, s := range res.Items {
 			subs = append(subs, s)
 		}
@@ -38,7 +38,7 @@ func (r *SubscriptionRepository) FindAll() ([]*youtube.Subscription, error) {
 		if num <= 0 {
 			break
 		}
-		res, err = r.fetchSubscriptions(res.NextPageToken)
+		res, err = r.fetchSubscriptions(role, res.NextPageToken)
 		if err != nil {
 			return subs, err
 		}

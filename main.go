@@ -28,19 +28,19 @@ type Playlist struct {
 }
 
 func (m *Migrator) fetchMigrationData() *Data {
-	subs, err := m.subscriptionRepo.FindAll()
+	subs, err := m.subscriptionRepo.FindAll(client.Reading)
 	if err != nil {
 		log.Println(err)
 	}
 
-	lists, err := m.playlistRepo.FindAll()
+	lists, err := m.playlistRepo.FindAll(client.Reading)
 	if err != nil {
 		log.Println(err)
 	}
 
 	var playlists []*Playlist
 	for _, l := range lists {
-		items, err := m.playlistItemRepo.Find(l.Id)
+		items, err := m.playlistItemRepo.Find(client.Reading, l.Id)
 		if err != nil {
 			log.Println(err)
 		}

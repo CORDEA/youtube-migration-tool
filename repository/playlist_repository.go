@@ -13,8 +13,8 @@ func NewPlaylistRepository(client *client.YouTubeApiClient) *PlaylistRepository 
 	return &PlaylistRepository{client: client}
 }
 
-func (r *PlaylistRepository) fetchPlaylists(pageToken string) (*youtube.PlaylistListResponse, error) {
-	call := r.client.GetPlaylistsService().List([]string{"id", "snippet"})
+func (r *PlaylistRepository) fetchPlaylists(role client.Role, pageToken string) (*youtube.PlaylistListResponse, error) {
+	call := r.client.GetPlaylistsService(role).List([]string{"id", "snippet"})
 	if pageToken != "" {
 		call.PageToken(pageToken)
 	}
@@ -23,9 +23,9 @@ func (r *PlaylistRepository) fetchPlaylists(pageToken string) (*youtube.Playlist
 	return call.Do()
 }
 
-func (r *PlaylistRepository) FindAll() ([]*youtube.Playlist, error) {
+func (r *PlaylistRepository) FindAll(role client.Role) ([]*youtube.Playlist, error) {
 	var lists []*youtube.Playlist
-	res, err := r.fetchPlaylists("")
+	res, err := r.fetchPlaylists(role, "")
 	if err != nil {
 		return lists, err
 	}
@@ -38,7 +38,7 @@ func (r *PlaylistRepository) FindAll() ([]*youtube.Playlist, error) {
 		if num <= 0 {
 			break
 		}
-		res, err = r.fetchPlaylists(res.NextPageToken)
+		res, err = r.fetchPlaylists(role, res.NextPageToken)
 		if err != nil {
 			return lists, err
 		}

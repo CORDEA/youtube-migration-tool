@@ -12,31 +12,56 @@ import (
 )
 
 type YouTubeApiClient struct {
-	service *youtube.Service
+	readingService *youtube.Service
+	writingService *youtube.Service
 }
+
+type Role int
+
+const (
+	Reading Role = iota + 1
+	Writing
+)
 
 func NewYouTubeApiClient(ctx context.Context, secret []byte) (*YouTubeApiClient, error) {
-	client, err := getClient(ctx, secret, youtube.YoutubeReadonlyScope)
+	rClient, err := getClient(ctx, secret, youtube.YoutubeReadonlyScope)
 	if err != nil {
 		return nil, err
 	}
-	service, err := youtube.NewService(ctx, option.WithHTTPClient(client))
+	rService, err := youtube.NewService(ctx, option.WithHTTPClient(rClient))
 	if err != nil {
 		return nil, err
 	}
-	return &YouTubeApiClient{service: service}, nil
+	wClient, err := getClient(ctx, secret, youtube.YoutubeScope)
+	if err != nil {
+		return nil, err
+	}
+	wService, err := youtube.NewService(ctx, option.WithHTTPClient(wClient))
+	if err != nil {
+		return nil, err
+	}
+	return &YouTubeApiClient{readingService: rService, writingService: wService}, nil
 }
 
-func (c *YouTubeApiClient) GetSubscriptionsService() *youtube.SubscriptionsService {
-	return c.service.Subscriptions
+func (c *YouTubeApiClient) GetSubscriptionsService(role Role) *youtube.SubscriptionsService {
+	if role == Writing {
+		return c.writingService.Subscriptions
+	}
+	return c.readingService.Subscriptions
 }
 
-func (c *YouTubeApiClient) GetPlaylistsService() *youtube.PlaylistsService {
-	return c.service.Playlists
+func (c *YouTubeApiClient) GetPlaylistsService(role Role) *youtube.PlaylistsService {
+	if role == Writing {
+		return c.writingService.Playlists
+	}
+	return c.readingService.Playlists
 }
 
-func (c *YouTubeApiClient) GetPlaylistItemsService() *youtube.PlaylistItemsService {
-	return c.service.PlaylistItems
+func (c *YouTubeApiClient) GetPlaylistItemsService(role Role) *youtube.PlaylistItemsService {
+	if role == Writing {
+		return c.writingService.PlaylistItems
+	}
+	return c.readingService.PlaylistItems
 }
 
 func getClient(ctx context.Context, secret []byte, scope ...string) (*http.Client, error) {
