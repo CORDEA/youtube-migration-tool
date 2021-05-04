@@ -57,6 +57,12 @@ func (m *Migrator) migrate() {
 	if err := m.subscriptionRepo.Insert(client.Writing, data.subscriptions); err != nil {
 		log.Fatalln(err)
 	}
+
+	for _, list := range data.playlists {
+		if err := m.playlistRepo.Insert(client.Writing, list.playlist); err != nil {
+			log.Fatalln(err)
+		}
+	}
 }
 
 func main() {

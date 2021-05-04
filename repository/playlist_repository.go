@@ -45,3 +45,9 @@ func (r *PlaylistRepository) FindAll(role client.Role) ([]*youtube.Playlist, err
 	}
 	return lists, nil
 }
+
+func (r *PlaylistRepository) Insert(role client.Role, list *youtube.Playlist) error {
+	call := r.client.GetPlaylistsService(role).Insert([]string{}, list)
+	_, err := call.Do()
+	return err
+}
