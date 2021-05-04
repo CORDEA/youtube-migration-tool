@@ -23,13 +23,13 @@ type Migrator struct {
 }
 
 type Data struct {
-	subscriptions []*youtube.Subscription
-	playlists     []*Playlist
+	Subscriptions []*youtube.Subscription `json:"subscriptions"`
+	Playlists     []*Playlist             `json:"playlists"`
 }
 
 type Playlist struct {
-	playlist *youtube.Playlist
-	items    []*youtube.PlaylistItem
+	Playlist *youtube.Playlist       `json:"playlist"`
+	Items    []*youtube.PlaylistItem `json:"items"`
 }
 
 func (m *Migrator) fetchMigrationData() *Data {
@@ -49,47 +49,20 @@ func (m *Migrator) fetchMigrationData() *Data {
 		if err != nil {
 			log.Println(err)
 		}
-		playlists = append(playlists, &Playlist{playlist: l, items: items})
+		playlists = append(playlists, &Playlist{Playlist: l, Items: items})
 		break
 	}
 
-	return &Data{subscriptions: subs, playlists: playlists}
+	return &Data{Subscriptions: subs, Playlists: playlists}
 }
 
 func (m *Migrator) cacheMigrationData(data *Data) error {
-	for _, s := range data.subscriptions {
-		path := filepath.Join(cacheDir, "s"+s.Id+".json")
-		if err := m.storeData(path, s); err != nil {
-			return err
-		}
-	}
-
-	for _, l := range data.playlists {
-		id := "p" + l.playlist.Id
-		path := filepath.Join(cacheDir, id+".json")
-		if err := m.storeData(path, l.playlist); err != nil {
-			return err
-		}
-		if err := os.Mkdir(id, 0700); err != nil {
-			return err
-		}
-		for _, i := range l.items {
-			path = filepath.Join(cacheDir, id, "i"+i.Id+".json")
-			if err := m.storeData(path, i); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (m *Migrator) storeData(path string, v interface{}) error {
+	path := filepath.Join(cacheDir, "data.json")
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
-	err = json.NewEncoder(f).Encode(v)
+	err = json.NewEncoder(f).Encode(data)
 	defer f.Close()
 	return err
 }
@@ -101,15 +74,15 @@ func (m *Migrator) migrate() {
 		log.Fatalln(err)
 	}
 
-	if err := m.subscriptionRepo.Insert(client.Writing, data.subscriptions); err != nil {
+	if err := m.subscriptionRepo.Insert(client.Writing, data.Subscriptions); err != nil {
 		log.Fatalln(err)
 	}
 
-	for _, list := range data.playlists {
-		if err := m.playlistRepo.Insert(client.Writing, list.playlist); err != nil {
+	for _, list := range data.Playlists {
+		if err := m.playlistRepo.Insert(client.Writing, list.Playlist); err != nil {
 			log.Fatalln(err)
 		}
-		for _, item := range list.items {
+		for _, item := range list.Items {
 			if err := m.playlistItemRepo.Insert(client.Writing, item); err != nil {
 				log.Fatalln(err)
 			}
