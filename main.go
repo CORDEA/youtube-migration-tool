@@ -51,6 +51,14 @@ func (m *Migrator) fetchMigrationData() *Data {
 	return &Data{subscriptions: subs, playlists: playlists}
 }
 
+func (m *Migrator) migrate() {
+	data := m.fetchMigrationData()
+
+	if err := m.subscriptionRepo.Insert(client.Writing, data.subscriptions); err != nil {
+		log.Fatalln(err)
+	}
+}
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
 

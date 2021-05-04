@@ -45,3 +45,13 @@ func (r *SubscriptionRepository) FindAll(role client.Role) ([]*youtube.Subscript
 	}
 	return subs, nil
 }
+
+func (r *SubscriptionRepository) Insert(role client.Role, subs []*youtube.Subscription) error {
+	for _, sub := range subs {
+		call := r.client.GetSubscriptionsService(role).Insert([]string{}, sub)
+		if _, err := call.Do(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
