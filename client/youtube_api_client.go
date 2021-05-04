@@ -1,6 +1,5 @@
 package client
 
-
 import (
 	"context"
 	"fmt"
@@ -32,6 +31,14 @@ func (c *YouTubeApiClient) GetSubscriptionsService() *youtube.SubscriptionsServi
 	return c.service.Subscriptions
 }
 
+func (c *YouTubeApiClient) GetPlaylistsService() *youtube.PlaylistsService {
+	return c.service.Playlists
+}
+
+func (c *YouTubeApiClient) GetPlaylistItemsService() *youtube.PlaylistItemsService {
+	return c.service.PlaylistItems
+}
+
 func getClient(ctx context.Context, secret []byte, scope ...string) (*http.Client, error) {
 	config, err := google.ConfigFromJSON(secret, scope...)
 	if err != nil {
@@ -47,7 +54,7 @@ func getClient(ctx context.Context, secret []byte, scope ...string) (*http.Clien
 func requestToken(ctx context.Context, config *oauth2.Config) (*oauth2.Token, error) {
 	state := ""
 	for i := 0; i < 3; i++ {
-		state += fmt.Sprintf("%c", rand.Intn(26) + 97)
+		state += fmt.Sprintf("%c", rand.Intn(26)+97)
 	}
 	url := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	fmt.Println(url)
