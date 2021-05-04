@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const cacheDir = ".cache"
+
 type Migrator struct {
 	subscriptionRepo *repository.SubscriptionRepository
 	playlistRepo     *repository.PlaylistRepository
@@ -78,7 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	apiClient, err := client.NewYouTubeApiClient(ctx, secret)
+	apiClient, err := client.NewYouTubeApiClient(ctx, secret, cacheDir)
 	if err != nil {
 		log.Fatalln(err)
 	}

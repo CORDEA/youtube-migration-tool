@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -9,6 +10,8 @@ import (
 	"google.golang.org/api/youtube/v3"
 	"math/rand"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 type YouTubeApiClient struct {
@@ -23,8 +26,8 @@ const (
 	Writing
 )
 
-func NewYouTubeApiClient(ctx context.Context, secret []byte) (*YouTubeApiClient, error) {
-	rClient, err := getClient(ctx, secret, youtube.YoutubeReadonlyScope)
+func NewYouTubeApiClient(ctx context.Context, secret []byte, cacheDir string) (*YouTubeApiClient, error) {
+	rClient, err := getClient(ctx, cacheDir, secret, youtube.YoutubeReadonlyScope)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +35,7 @@ func NewYouTubeApiClient(ctx context.Context, secret []byte) (*YouTubeApiClient,
 	if err != nil {
 		return nil, err
 	}
-	wClient, err := getClient(ctx, secret, youtube.YoutubeScope)
+	wClient, err := getClient(ctx, cacheDir, secret, youtube.YoutubeScope)
 	if err != nil {
 		return nil, err
 	}
@@ -64,16 +67,28 @@ func (c *YouTubeApiClient) GetPlaylistItemsService(role Role) *youtube.PlaylistI
 	return c.readingService.PlaylistItems
 }
 
-func getClient(ctx context.Context, secret []byte, scope ...string) (*http.Client, error) {
+func getClient(ctx context.Context, cacheDir string, secret []byte, scope ...string) (*http.Client, error) {
 	config, err := google.ConfigFromJSON(secret, scope...)
 	if err != nil {
 		return nil, err
 	}
-	token, err := requestToken(ctx, config)
+
+	if err := os.Mkdir(cacheDir, 0700); err != nil {
+		return nil, err
+	}
+	path := filepath.Join(cacheDir, "credentials.json")
+	token, err := restoreToken(path)
+	if err == nil {
+		return config.Client(ctx, token), nil
+	}
+
+	token, err = requestToken(ctx, config)
 	if err != nil {
 		return nil, err
 	}
-	return config.Client(ctx, token), nil
+	client := config.Client(ctx, token)
+	err = storeToken(path, token)
+	return client, err
 }
 
 func requestToken(ctx context.Context, config *oauth2.Config) (*oauth2.Token, error) {
@@ -88,4 +103,24 @@ func requestToken(ctx context.Context, config *oauth2.Config) (*oauth2.Token, er
 		return nil, err
 	}
 	return config.Exchange(ctx, code)
+}
+
+func restoreToken(path string) (*oauth2.Token, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	t := &oauth2.Token{}
+	err = json.NewDecoder(f).Decode(t)
+	defer f.Close()
+	return t, err
+}
+
+func storeToken(path string, token *oauth2.Token) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return json.NewEncoder(f).Encode(token)
 }
