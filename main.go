@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/CORDEA/youtube-migration-tool/client"
 	"github.com/CORDEA/youtube-migration-tool/repository"
 	"google.golang.org/api/youtube/v3"
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -53,8 +56,50 @@ func (m *Migrator) fetchMigrationData() *Data {
 	return &Data{subscriptions: subs, playlists: playlists}
 }
 
+func (m *Migrator) cacheMigrationData(data *Data) error {
+	for _, s := range data.subscriptions {
+		path := filepath.Join(cacheDir, "s"+s.Id+".json")
+		if err := m.storeData(path, s); err != nil {
+			return err
+		}
+	}
+
+	for _, l := range data.playlists {
+		id := "p" + l.playlist.Id
+		path := filepath.Join(cacheDir, id+".json")
+		if err := m.storeData(path, l.playlist); err != nil {
+			return err
+		}
+		if err := os.Mkdir(id, 0700); err != nil {
+			return err
+		}
+		for _, i := range l.items {
+			path = filepath.Join(cacheDir, id, "i"+i.Id+".json")
+			if err := m.storeData(path, i); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m *Migrator) storeData(path string, v interface{}) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	err = json.NewEncoder(f).Encode(v)
+	defer f.Close()
+	return err
+}
+
 func (m *Migrator) migrate() {
 	data := m.fetchMigrationData()
+
+	if err := m.cacheMigrationData(data); err != nil {
+		log.Fatalln(err)
+	}
 
 	if err := m.subscriptionRepo.Insert(client.Writing, data.subscriptions); err != nil {
 		log.Fatalln(err)
