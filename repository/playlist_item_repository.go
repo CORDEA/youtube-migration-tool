@@ -45,3 +45,9 @@ func (r *PlaylistItemRepository) Find(role client.Role, id string) ([]*youtube.P
 	}
 	return lists, nil
 }
+
+func (r *PlaylistItemRepository) Insert(role client.Role, item *youtube.PlaylistItem) error {
+	call := r.client.GetPlaylistItemsService(role).Insert([]string{}, item)
+	_, err := call.Do()
+	return err
+}

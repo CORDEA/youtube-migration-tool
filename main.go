@@ -62,6 +62,11 @@ func (m *Migrator) migrate() {
 		if err := m.playlistRepo.Insert(client.Writing, list.playlist); err != nil {
 			log.Fatalln(err)
 		}
+		for _, item := range list.items {
+			if err := m.playlistItemRepo.Insert(client.Writing, item); err != nil {
+				log.Fatalln(err)
+			}
+		}
 	}
 }
 
