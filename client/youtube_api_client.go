@@ -27,9 +27,7 @@ const (
 )
 
 func NewYouTubeApiClient(ctx context.Context, secret []byte, cacheDir string) (*YouTubeApiClient, error) {
-	if err := os.Mkdir(cacheDir, 0700); err != nil {
-		return nil, err
-	}
+	_ = os.Mkdir(cacheDir, 0700)
 
 	rClient, err := getClient(ctx, filepath.Join(cacheDir, "r.credentials.json"), secret, youtube.YoutubeReadonlyScope)
 	if err != nil {
