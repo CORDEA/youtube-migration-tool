@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/CORDEA/youtube-migration-tool/client"
 	"github.com/CORDEA/youtube-migration-tool/repository"
 	"google.golang.org/api/youtube/v3"
@@ -52,6 +53,8 @@ func (m *Migrator) migrate() {
 		log.Fatalln(err)
 	}
 
+	fmt.Printf("%d units are required for migration.\n", m.calculateQuotaCost(data))
+
 	var errId string
 	var errType errorType
 	// TODO: Create request from response.
@@ -82,6 +85,7 @@ func (m *Migrator) migrate() {
 	}
 
 	if err == nil {
+		fmt.Println("Migrated.")
 		return
 	}
 
@@ -113,6 +117,15 @@ func (m *Migrator) fetchMigrationData() (*Data, error) {
 	}
 
 	return &Data{Subscriptions: subs, Playlists: playlists}, nil
+}
+
+func (m *Migrator) calculateQuotaCost(data *Data) int {
+	// https://developers.google.com/youtube/v3/getting-started#quota
+	cost := len(data.Subscriptions) * 50 + len(data.Playlists) * 50
+	for _, list := range data.Playlists {
+		cost += len(list.Items) * 50
+	}
+	return cost
 }
 
 func (m *Migrator) cacheMigrationData(data *Data) error {
