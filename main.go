@@ -32,6 +32,14 @@ type Playlist struct {
 	Items    []*youtube.PlaylistItem `json:"items"`
 }
 
+type errorType int
+
+const (
+	subscription errorType = iota + 1
+	playlist
+	playlistItem
+)
+
 func (m *Migrator) fetchMigrationData() (*Data, error) {
 	subs, err := m.subscriptionRepo.FindAll(client.Reading)
 	if err != nil {
@@ -91,20 +99,86 @@ func (m *Migrator) migrate() {
 		log.Fatalln(err)
 	}
 
-	if err := m.subscriptionRepo.Insert(client.Writing, data.Subscriptions); err != nil {
-		log.Fatalln(err)
+	var errOn string
+	var errType errorType
+	for _, sub := range data.Subscriptions {
+		if e := m.subscriptionRepo.Insert(client.Writing, sub); e != nil {
+			errOn = sub.Id
+			errType = subscription
+			err = e
+			break
+		}
 	}
 
 	for _, list := range data.Playlists {
-		if err := m.playlistRepo.Insert(client.Writing, list.Playlist); err != nil {
-			log.Fatalln(err)
+		if e := m.playlistRepo.Insert(client.Writing, list.Playlist); e != nil {
+			errOn = list.Playlist.Id
+			errType = playlist
+			err = e
+			break
 		}
 		for _, item := range list.Items {
-			if err := m.playlistItemRepo.Insert(client.Writing, item); err != nil {
-				log.Fatalln(err)
+			if e := m.playlistItemRepo.Insert(client.Writing, item); e != nil {
+				errOn = item.Id
+				errType = playlistItem
+				err = e
+				break
 			}
 		}
 	}
+
+	if err == nil {
+		return
+	}
+
+	var newSubs []*youtube.Subscription
+	var newList []*Playlist
+	ignore := true
+	if errType == subscription {
+		for _, sub := range data.Subscriptions {
+			if sub.Id == errOn {
+				ignore = false
+			}
+			if ignore {
+				continue
+			}
+			newSubs = append(newSubs, sub)
+		}
+
+		if err := m.cacheMigrationData(&Data{Subscriptions: newSubs, Playlists: newList}); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	for _, list := range data.Playlists {
+		if errType == playlist && list.Playlist.Id == errOn {
+			ignore = false
+		}
+		if !ignore {
+			newList = append(newList, list)
+			continue
+		}
+		if errType != playlistItem {
+			continue
+		}
+		var newItems []*youtube.PlaylistItem
+		for _, item := range list.Items {
+			if item.Id == errOn {
+				ignore = false
+			}
+			if !ignore {
+				newItems = append(newItems, item)
+			}
+		}
+		newList = append(newList, &Playlist{Playlist: list.Playlist, Items: newItems})
+	}
+
+	if err := m.cacheMigrationData(&Data{Subscriptions: newSubs, Playlists: newList}); err != nil {
+		log.Println(err)
+	}
+
+	log.Fatalln(err)
 }
 
 func main() {
