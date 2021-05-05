@@ -54,6 +54,7 @@ func (m *Migrator) migrate() {
 
 	var errId string
 	var errType errorType
+	// TODO: Create request from response.
 	for _, sub := range data.Subscriptions {
 		if e := m.subscriptionRepo.Insert(client.Writing, sub); e != nil {
 			errId = sub.Id
