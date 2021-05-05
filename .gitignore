@@ -17,3 +17,6 @@ vendor/
 .idea/
 
 client_secret.json
+
+youtube-migration-tool
+.cache
